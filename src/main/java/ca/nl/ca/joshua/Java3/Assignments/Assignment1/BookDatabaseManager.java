@@ -4,6 +4,7 @@ import org.mariadb.jdbc.Connection;
 import org.mariadb.jdbc.Statement;
 
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -96,6 +97,129 @@ public class BookDatabaseManager {
                         }
                     }
                 }
+
+                Author authorToAdd = null;
+                for (Author author : authors) {
+                    if (author.getAuthorID() == authorID) {
+                        authorToAdd = author;
+                        break;
+                    }
+                }
+
+                if (authorToAdd != null) {
+                    for (Book book : books) {
+                        if (book.getIsbn().equals(isbn)) {
+                            if (!book.getAuthorList().contains(authorToAdd)) {
+                                book.addAuthor(authorToAdd);
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public void updateBook(String isbn, String title, int editionNumber, String copyright) throws SQLException {
+        books.clear();
+        authors.clear();
+        String updateBookQuery = "UPDATE titles SET title = ?, editionNumber = ?, copyright = ? WHERE isbn = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(updateBookQuery)) {
+            pstmt.setString(1, title);
+            pstmt.setInt(2, editionNumber);
+            pstmt.setString(3, copyright);
+            pstmt.setString(4, isbn);
+            int affectedRows = pstmt.executeUpdate(); // Use executeUpdate() for UPDATE statements
+
+            if (affectedRows == 0) {
+                System.out.println("No book found with ISBN: " + isbn);
+            } else {
+                System.out.println("Book updated successfully.");
+            }
+        }
+    }
+
+    public void updateAuthor(int authorID, String firstName, String lastName) throws SQLException {
+        authors.clear();
+        books.clear();
+        String updateAuthorQuery = "UPDATE authors SET firstName = ?, lastName = ? WHERE authorID = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(updateAuthorQuery)) {
+            pstmt.setString(1, firstName);
+            pstmt.setString(2, lastName);
+            pstmt.setInt(3, authorID);
+            int affectedRows = pstmt.executeUpdate(); // Execute the update
+
+            if (affectedRows == 0) {
+                System.out.println("No author found with ID: " + authorID);
+            } else {
+                System.out.println("Author updated successfully.");
+            }
+        }
+    }
+
+    public void createBook(String isbn, String title, int editionNumber, String copyright, List<Integer> authorIDs) throws SQLException {
+        String insertBookQuery = "INSERT INTO titles (isbn, title, editionNumber, copyright) VALUES (?, ?, ?, ?)";
+
+        try (PreparedStatement pstmt = connection.prepareStatement(insertBookQuery)) {
+            pstmt.setString(1, isbn);
+            pstmt.setString(2, title);
+            pstmt.setInt(3, editionNumber);
+            pstmt.setString(4, copyright);
+            int bookInserted = pstmt.executeUpdate();
+
+            if (bookInserted > 0) {
+                System.out.println("Book added successfully.");
+            } else {
+                System.out.println("Failed to add book.");
+                return;
+            }
+        }
+
+        // Associate the book with the provided authors
+        String insertAuthorRelationQuery = "INSERT INTO authorisbn (authorID, isbn) VALUES (?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(insertAuthorRelationQuery)) {
+            for (int authorID : authorIDs) {
+                pstmt.setInt(1, authorID);
+                pstmt.setString(2, isbn);
+                pstmt.executeUpdate();
+            }
+            System.out.println("Authors linked to the book successfully.");
+        }
+    }
+
+
+    public void createAuthor(String firstName, String lastName, List<String> bookISBNs) throws SQLException {
+        String insertAuthorQuery = "INSERT INTO authors (firstName, lastName) VALUES (?, ?)";
+
+        int authorID = -1; // Placeholder for the newly created author ID
+        try (PreparedStatement pstmt = connection.prepareStatement(insertAuthorQuery, Statement.RETURN_GENERATED_KEYS)) {
+            pstmt.setString(1, firstName);
+            pstmt.setString(2, lastName);
+            int authorInserted = pstmt.executeUpdate();
+
+            if (authorInserted > 0) {
+                try (ResultSet generatedKeys = pstmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        authorID = generatedKeys.getInt(1); // Retrieve the generated author ID
+                        System.out.println("Author added successfully with ID: " + authorID);
+                    }
+                }
+            } else {
+                System.out.println("Failed to add author.");
+                return;
+            }
+        }
+
+        // Associate the author with the provided books
+        if (authorID != -1) {
+            String insertBookRelationQuery = "INSERT INTO authorisbn (authorID, isbn) VALUES (?, ?)";
+            try (PreparedStatement pstmt = connection.prepareStatement(insertBookRelationQuery)) {
+                for (String isbn : bookISBNs) {
+                    pstmt.setInt(1, authorID);
+                    pstmt.setString(2, isbn);
+                    pstmt.executeUpdate();
+                }
+                System.out.println("Author linked to books successfully.");
             }
         }
     }

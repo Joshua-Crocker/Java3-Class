@@ -7,48 +7,53 @@ public class Author {
     private int authorID;
     private String firstName;
     private String lastName;
-    private List<Book> bookList;
+    private List<Book> bookList = new ArrayList<>();
 
+    // Original constructor with authorID
     public Author(int authorID, String firstName, String lastName) {
         this.authorID = authorID;
         this.firstName = firstName;
         this.lastName = lastName;
-        this.bookList = new ArrayList<>(); // Initialize the list properly
+    }
+
+    // Overloaded constructor without authorID
+    public Author(String firstName, String lastName) {
+        this.firstName = firstName;
+        this.lastName = lastName;
     }
 
     public int getAuthorID() {
         return authorID;
     }
 
-    public void setAuthorID(int authorID) {
-        this.authorID = authorID;
-    }
-
     public String getFirstName() {
         return firstName;
-    }
-
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
     }
 
     public String getLastName() {
         return lastName;
     }
 
+    public void setAuthorID(int authorID) {
+        this.authorID = authorID;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
     public void setLastName(String lastName) {
         this.lastName = lastName;
     }
 
-    public List<Book> getBookList() {
-        return bookList;
-    }
-
-    public void setBookList(List<Book> bookList) {
-        this.bookList = bookList;
-    }
-
     public void addBook(Book book) {
-        this.bookList.add(book);
+        if (!bookList.contains(book)) {
+            bookList.add(book);
+            book.addAuthor(this);
+        }
+    }
+
+    public String toString() {
+        return "( " + authorID +" )" + firstName + " " + lastName;
     }
 }

@@ -14,7 +14,7 @@ import static ca.nl.ca.joshua.Java3.Assignments.Assignment1.dbProperties.*;
 public class BookDatabaseManager {
     private List<Book> books = new ArrayList<>();
     private List<Author> authors = new ArrayList<>();
-    private Connection connection;
+    private final Connection connection;
 
     public BookDatabaseManager() throws SQLException {
         connection = (Connection) DriverManager.getConnection(DB_URL, USER, PASS);
